@@ -154,6 +154,9 @@ server <- function(input, output,...) {
     
     })
   
+  
+  subplot
+  
   output$plotPrincipal <-  renderPlotly({
 
     currentdata <<- subsetdf()
