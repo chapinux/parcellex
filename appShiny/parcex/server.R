@@ -147,7 +147,7 @@ server <- function(input, output,...) {
     req(evd)
     serie <-  fulldata %>% filter(ID_PARCEL==evd$customdata)
     dates <- c(1:nrow(serie))
-    plt2 <- plot_ly(data=serie, x=~dates, type='scatter')
+    plt2 <- plot_ly(data=serie, x=~dates)
     plt2 <- plt2 %>% add_trace(y = ~truth, name = 'truth',mode = 'lines+markers',symbols=c('hexagon2'))
     plt2 <- plt2 %>% add_trace(y = ~pred, name = 'pred',mode = 'lines+markers', symbols=c('x') )
     plt2
