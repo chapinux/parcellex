@@ -17,7 +17,7 @@ library(sf)
 
 ### data loading and setup###############################s
 path_to_vignettes <-  "/media/chap/HashDaiDai/bidouille_Anatol/all_ids_patches/"
-path_to_data <-  "~/dev/parcellex/dataBienFormee.csv"
+path_to_data <-  "~/dev/parcellex/data60obs_MSEMAER2.csv"
 path_to_parcelsSHP <- "~/dev/parcellex/rpg_2017_T31TFM.geojson" 
 
 yy <- read.csv(path_to_data)
@@ -39,8 +39,8 @@ yy <- yy %>% filter(slope >= 0 & elevation < 1.14e23)
 
 #central data objects
 
-Xrange = c(-0.9,1.1)
-Yrange = c(-0.1, 1.1)
+Xrange = c(min(yy$truth),max(yy$truth))
+Yrange = c(min(yy$pred), max(yy$pred))
 
 fulldata <- yy
 currentdata <- yy
@@ -67,6 +67,10 @@ sliSurfaceparam <- paramSliderFactory("surface")
 sliPerimeterparam <- paramSliderFactory("perimeter") 
 sliNbpixparam <- paramSliderFactory("nbpix") 
 sliDeltaTPparam <- paramSliderFactory("deltaTP") 
+sliMSEparam <-  paramSliderFactory("MSE")
+sliMAEparam <- paramSliderFactory("MAE")
+sliR2param <-  paramSliderFactory("Rsquare")
+ 
 
 
 currentFeatureName <-  "surface"
@@ -88,10 +92,14 @@ ui <- fluidPage(
             sliderInput('sliNbpix', "Nbpix",
                         min=sliNbpixparam[1], max=sliNbpixparam[2], value=sliNbpixparam[1:2], step=sliNbpixparam[3]),
             sliderInput('sliDeltaTP', "Delta Truth - Pred",
-                        min=sliDeltaTPparam[1], max=sliDeltaTPparam[2], value=sliDeltaTPparam[1:2], step=0.1)
-            
-            
-     ),
+                        min=sliDeltaTPparam[1], max=sliDeltaTPparam[2], value=sliDeltaTPparam[1:2], step=0.1),
+            sliderInput('sliMSE', "MSE",
+                        min=sliMSEparam[1], max=sliMSEparam[2], value=sliMSEparam[1:2], step=0.01),
+            sliderInput('sliMAE', "MAE",
+                        min=sliMAEparam[1], max=sliMAEparam[2], value=sliMAEparam[1:2], step=0.01),
+            sliderInput('sliR2', "R square",
+                        min=sliR2param[1], max=sliR2param[2], value=sliR2param[1:2], step=0.01)
+            ),
      
      column(9, 
             fluidRow(
@@ -108,7 +116,7 @@ ui <- fluidPage(
                      tableOutput('infoClick')
               ),
               column(3,
-                     radioButtons('featureColor', "color",choices = c("surface", "perimeter",  "elevation", "slope", "nbpix", "codeculture", "deltaTP"), selected = "surface")
+                     radioButtons('featureColor', "color",choices = c("surface", "perimeter",  "elevation", "slope", "nbpix", "codeculture", "deltaTP", "MSE", "MAE", "Rsquare"), selected = "surface")
                      )
             )#fluidrow
      )#colonne
@@ -136,7 +144,12 @@ server <- function(input, output,...) {
                                filter(between(surface, input$sliSurface[1],input$sliSurface[2] )) %>%
                                 filter(between(elevation, input$sliElevation[1],input$sliElevation[2])) %>%
                               filter(between(nbpix, input$sliNbpix[1],input$sliNbpix[2])) %>%
-                               filter(between(deltaTP, input$sliDeltaTP[1],input$sliDeltaTP[2] ))
+                               filter(between(deltaTP, input$sliDeltaTP[1],input$sliDeltaTP[2] )) %>% 
+                                filter(between(MSE, input$sliMSE[1],input$sliMSE[2] )) %>% 
+                                filter(between(MAE, input$sliMAE[1],input$sliMAE[2] )) %>% 
+                                filter(between(Rsquare, input$sliR2[1],input$sliR2[2] )) 
+      
+      
 
         return(filtereddf)
   })
@@ -167,7 +180,11 @@ server <- function(input, output,...) {
            "perimeter" = currentdata$perimeter,  
             "nbpix"= currentdata$nbpix, 
            "codeculture"= currentdata$CodeCulture, 
-           "deltaTP"= currentdata$deltaTP)
+           "deltaTP"= currentdata$deltaTP,
+           "MSE"=currentdata$MSE,
+           "MAE"=currentdata$MAE,
+           "Rsquare"= currentdata$Rsquare
+           )
   
     highlightableCurrendata <- highlight_key(currentdata, ~ID_PARCEL)
     
@@ -241,7 +258,11 @@ server <- function(input, output,...) {
 }
 
 
-
 shinyApp(ui, server)
+
+
+fulldata %>%  filter(truth==-2 | pred==-2) %>% group_by(ID_PARCEL) %>% summarise(n())
+
+
 
 
