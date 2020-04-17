@@ -43,6 +43,14 @@ Xrange = c(min(yy$truth),max(yy$truth))
 Yrange = c(min(yy$pred), max(yy$pred))
 
 fulldata <- yy
+
+fulldata$MAE <-  round(fulldata$MAE, 4)
+fulldata$MSE <-  round(fulldata$MSE, 4)
+fulldata$Rsquare <-  round(fulldata$Rsquare, 4)
+fulldata$deltaTP <-  round(fulldata$deltaTP, 4)
+
+
+
 currentdata <- yy
 rm(yy)
 #############################################
@@ -71,12 +79,16 @@ sliMSEparam <-  paramSliderFactory("MSE")
 sliMAEparam <- paramSliderFactory("MAE")
 sliR2param <-  paramSliderFactory("Rsquare")
  
-
+IDs <-  fulldata$ID_PARCEL %>% unique()
 
 currentFeatureName <-  "surface"
 
 
 ui <- fluidPage(
+  
+  
+  
+  
    fluidRow(
      column(3, div(style = "height:30%"),
             sliderInput('nbparcels', "Number of parcels",
@@ -106,16 +118,23 @@ ui <- fluidPage(
             plotlyOutput(outputId = 'plotPrincipal', height = "450px") 
             ),
             fluidRow(
+              column(2,
+                     selectizeInput( inputId =  "IDselector",
+                        selected=NULL,
+                       label = h3("Parcel selector"),
+                       choices = NULL,options = list(maxItems = 1,placeholder = 'ID_PARCEL')),
+                      actionButton("clearIDbutton", "Clear current parcel")
+                     ),
               column(3,
                      plotOutput('plotSHP', height = "300px")
               ),
               column(3, 
                      imageOutput("vignette", height="300px")
               ),
-              column(3,
+              column(2,
                      tableOutput('infoClick')
               ),
-              column(3,
+              column(2,
                      radioButtons('featureColor', "color",choices = c("surface", "perimeter",  "elevation", "slope", "nbpix", "codeculture", "deltaTP", "MSE", "MAE", "Rsquare"), selected = "surface")
                      )
             )#fluidrow
@@ -127,16 +146,36 @@ ui <- fluidPage(
   fluidRow(
     plotlyOutput(outputId = 'plotTimeSerie', height = "200px")
     )#fluidrow
-)#fluid page
+ )#fluidpage
+  
+  
+  
+ 
 
 
 
 
-
-server <- function(input, output,...) {
+server <- function(input, output,session) {
    
+  updateSelectizeInput(session, inputId = 'IDselector', selected = character(0), choices = IDs, server = TRUE)
+  
+  observeEvent(input$clearIDbutton,
+               {
+                 updateSelectizeInput(session, inputId = 'IDselector', selected = character(0), choices = IDs, server = TRUE)
+                 currentdata <<- subsetdf()
+                 
+                 
+                 
+                  })
   
   subsetdf <- reactive({
+  
+    if(input$IDselector %in% IDs ){
+     
+      filtereddf <- fulldata %>%  filter(ID_PARCEL == input$IDselector)
+    }
+      else{
+   
     selectedParcelsID <-  sample(parcelles$ID_PARCEL, size = input$nbparcels)
     filtereddf <-  fulldata %>%  filter(ID_PARCEL %in% selectedParcelsID) %>% 
                                  filter(between(slope, input$sliSlope[1],input$sliSlope[2] )) %>%
@@ -149,8 +188,8 @@ server <- function(input, output,...) {
                                 filter(between(MAE, input$sliMAE[1],input$sliMAE[2] )) %>% 
                                 filter(between(Rsquare, input$sliR2[1],input$sliR2[2] )) 
       
-      
-
+    }  
+    
         return(filtereddf)
   })
   
@@ -168,7 +207,7 @@ server <- function(input, output,...) {
     })
   
   
-  subplot
+  
   
   output$plotPrincipal <-  renderPlotly({
 
@@ -259,10 +298,6 @@ server <- function(input, output,...) {
 
 
 shinyApp(ui, server)
-
-
-fulldata %>%  filter(truth==-2 | pred==-2) %>% group_by(ID_PARCEL) %>% summarise(n())
-
 
 
 
