@@ -43,7 +43,6 @@ Xrange = c(min(yy$truth),max(yy$truth))
 Yrange = c(min(yy$pred), max(yy$pred))
 
 fulldata <- yy
-
 fulldata$MAE <-  round(fulldata$MAE, 4)
 fulldata$MSE <-  round(fulldata$MSE, 4)
 fulldata$Rsquare <-  round(fulldata$Rsquare, 4)
@@ -51,7 +50,7 @@ fulldata$deltaTP <-  round(fulldata$deltaTP, 4)
 
 
 
-currentdata <- yy
+currentdata <- fulldata
 rm(yy)
 #############################################
 
@@ -85,10 +84,7 @@ currentFeatureName <-  "surface"
 
 
 ui <- fluidPage(
-  
-  
-  
-  
+
    fluidRow(
      column(3, div(style = "height:30%"),
             sliderInput('nbparcels', "Number of parcels",
@@ -199,7 +195,7 @@ server <- function(input, output,session) {
     req(evd)
     serie <-  fulldata %>% filter(ID_PARCEL==evd$customdata)
     dates <- c(1:nrow(serie))
-    plt2 <- plot_ly(data=serie, x=~dates)
+    plt2 <- plot_ly(data=serie, x=~dates, type = NULL)
     plt2 <- plt2 %>% add_trace(y = ~truth, name = 'truth',mode = 'lines+markers',symbols=c('hexagon2'))
     plt2 <- plt2 %>% add_trace(y = ~pred, name = 'pred',mode = 'lines+markers', symbols=c('x') )
     plt2
@@ -268,6 +264,8 @@ server <- function(input, output,session) {
     evd <- event_data("plotly_click")
     req(evd)
     ligne <-  currentdata %>% filter(ID_PARCEL == evd$customdata & truth==evd$x & pred==evd$y)
+    desired_order <- c( "ID_PARCEL",  "CodeCulture","truth","pred","Rsquare","MSE","MAE","deltaTP","surface","perimeter","slope","elevation","nbpix")
+    ligne <-  ligne[1,desired_order]
     nomsligne <- names(ligne)
     colonne <- data.frame(nomsligne, t(ligne))
     names(colonne) <- c("name", "value")
